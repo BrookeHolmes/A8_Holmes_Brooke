@@ -1,0 +1,60 @@
+---
+title: "A8_Holmes_Brooke"
+author: "Brooke Holmes"
+date: "16/03/2022"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(ape)
+library(ggplot2)
+library(ggtree)
+library(vegan)
+library(reshape2)
+```
+
+
+```{r}
+MyData <- read.csv("FloristicSurvey.csv")
+```
+
+```{r}
+# removing all data other then data for the species in the community
+df <- select(MyData, Claytonia_virginiana:maianthenum_racemosum) 
+
+# adding row names concerning to each quadrate to the species data
+row.names(df) <- MyData$Quadrate
+```
+
+```{r}
+# Bray-Curtis Dissimilarity
+df_dist<- vegdist(df,method="bray",binary=F)
+df_tree2<-nj(df_dist)
+
+# Plotting the tree
+ggtree(df_tree2, layout = "rectangular") %<+% MyData +
+ geom_tree(aes(colour = Location)) +
+  geom_tiplab() +
+  scale_colour_discrete(name = "Garlic Mustard", labels = c("Present", "Not Present"))
+```
+**Figure 1.** The similarity of samples in the presence and absence of garlic mustard suggests that it has no influence on the plant community.
+
+###NMDS
+```{r}
+# Using NMDS to visualize similarity/differences among our samples
+set.seed(13)
+NMDSdat = metaMDS(df_dist, k = 2, trymax = 100)
+
+PDat = data.frame(NMDS1 = NMDSdat$points[,1],
+                  NMDS2 = NMDSdat$points[,2],
+                  Quadrate = row.names(df))
+
+PDat = merge(PDat, MyData, by = "Quadrate", all.x = T, all.y = T)
+
+ggplot(PDat) +
+  geom_point(aes(x = NMDS1, y = NMDS2, colour = factor(Population), shape = Location)) +
+  scale_colour_discrete(name = "Population") + 
+  theme_bw()
+```
+**Figure 2.** NMDS plot coloured by population ID, and shaped by location. The presence or absence of garlic mustard has a higher impact on the plant community than the sample population.
